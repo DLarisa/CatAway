@@ -64,9 +64,7 @@ private:
         Routes::Get(router, "/ready", Routes::bind(&Generic::handleReady));
         Routes::Get(router, "/auth", Routes::bind(&CatAwayEndpoint::doAuth, this));
         Routes::Post(router, "/settings/add/:addSetting/:value", Routes::bind(&CatAwayEndpoint::addSetting, this));
-        // Routes::Post(router, "/settings/add/age/:value", Routes::bind(&CatAwayEndpoint::addAge, this));
         Routes::Get(router, "/settings/:resultSetting", Routes::bind(&CatAwayEndpoint::getSetting, this));
-        Routes::Get(router, "/test", Routes::bind(&CatAwayEndpoint::test, this));
     }
 
     
@@ -108,27 +106,6 @@ private:
         }
 
     }
-    void addAge(const Rest::Request& request, Http::ResponseWriter response){
-        Guard guard(CatAwayLock);
-        
-        
-        string val = "";
-        if (request.hasParam(":value")) {
-            auto value = request.param(":value");
-            val = value.as<string>();
-        }
-        
-        // Setting the CatAway's setting to value
-        int setResponse = cat.set("age", string(val));
-
-        // Sending some confirmation or error response.
-        if (setResponse == 1) {
-            response.send(Http::Code::Ok,  "Age was set to " + val);
-        }
-        else {
-            response.send(Http::Code::Not_Found, "Age was not found and or '" + val + "' was not a valid value ");
-        }
-    }
 
     // Setting to get the settings value of one of the configurations of the CatAway
     void getSetting(const Rest::Request& request, Http::ResponseWriter response){
@@ -151,10 +128,6 @@ private:
         else {
             response.send(Http::Code::Not_Found, settingName + " was not found");
         }
-    }
-
-    void test(const Rest::Request& request, Http::ResponseWriter response){
-        response.send(Http::Code::Ok, "test");
     }
 
     // Defining the class of the CatAway. It should model the entire configuration of the CatAway
