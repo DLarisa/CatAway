@@ -1,0 +1,81 @@
+{
+    "device-name": "CatAway",
+    "device-type": "Food and water dispenser",
+    "buffers-count": 3,
+    "input-buffers": {
+      "1": {
+        "token-delimitators": "",
+        "protocol": "HTTP",
+        "prefix": "curl -XPOST 'http://localhost:8080/'",
+        "buffer-tokens": [
+          {
+            "name":"Set cat's weight",
+            "description": "Sets cat's weight manually, with 2 decimals",
+            "token-type": "number",
+            "byte-size": 4,
+            "regex-rule": "^[0-9]+\\.[0-9]{2}$",
+            "optional": false
+          },
+          {
+            "name":"Set cat's age",
+            "description": "Sets cat's age manually (in years)",
+            "token-type": "number",
+            "byte-size": 4,
+            "regex-rule": "^[0-9]+$",
+            "optional": false
+          },
+          {
+            "name": "Eating speed",
+            "description": "How fast the cat eats",
+            "token-type":"string",
+            "byte-size": 10,
+            "regex-rule": "^(fast|slow|medium)$",
+            "optional": false
+          },
+          {
+            "name": "Manual feeding schedule",
+            "description": "The user provides the schedule for feeding",
+            "token-type":"string",
+            "byte-size": 50,
+            "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
+            "optional": true
+          }
+        ]
+      }
+    },
+  
+    "output-buffers":{
+      "1":{
+        "token-delimitators": "",
+        "protocol": "HTTP",
+        "prefix": "curl -XGET 'http://localhost:8080/'",
+        "buffer-tokens": [
+          {
+            "name": "Quantity of food",
+            "description": "Recommended portion in g",
+            "token-type": "number",
+            "byte-size": 10,
+            "regex-rule": "^[0-9]+$",
+            "optional": false
+          },
+          {
+            "name": "Breaks for fast eaters",
+            "description": "Number of breaks to split the food",
+            "token-type": "number",
+            "byte-size": 4,
+            "regex-rule": "^[0|1|2]$",
+            "optional": false
+          },
+          {
+            "name": "Default feeding schedule",
+            "description": "The dispenser provides the schedule for feeding",
+            "token-type":"string",
+            "byte-size": 50,
+            "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
+            "optional": true
+          }
+        ]
+      }
+    }
+  }
+  
