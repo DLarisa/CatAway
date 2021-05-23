@@ -10,10 +10,16 @@
 #include <pistache/endpoint.h>
 #include <pistache/common.h>
 
+#include <mosquitto.h>
+
+#include <ctime>
 #include <signal.h>
 
 using namespace std;
 using namespace Pistache;
+
+float globalWeight;
+
 
 void printCookies(const Http::Request& req) {
     auto cookies = req.cookies();
@@ -32,6 +38,7 @@ namespace Generic {
     }
 
 }
+
 
 class CatAwayEndpoint {
 public:
@@ -134,11 +141,120 @@ private:
     class CatAway {
     public:
         explicit CatAway(){ }
+        void setRecFood()
+        {
+            float cups = 0;
+            if(this->age > 1.0)
+            {
+                if(this->weight <= 1.8)
+                cups = 0.25;
+                else if(this->weight <= 3.6)
+                cups = 0.5;
+
+                else if(this->weight <= 5.4)
+                cups = 0.75;
+
+                else if(this->weight <= 7.2)
+                cups = 1.0;
+
+                else if(this->weight <= 9.0)
+                cups = 1.25;
+            }
+            else if(this->age >= 0.17 && this->age < 0.42)  //[2, 5) luni
+            {
+                    if(this->weight <= 0.9)
+                cups = 0.5;
+                else if(this->weight <= 1.8)
+                cups = 0.75;
+
+                else if(this->weight <= 2.7)
+                cups = 1.0;
+
+                else if(this->weight <= 3.6)
+                cups = 1.25;
+
+                else if(this->weight <= 4.5)
+                cups = 1.5;
+
+                else if(this->weight <= 5.4)
+                cups = 1.75;
+
+                else if(this->weight <= 6.3)
+                cups = 2.0;
+
+                else if(this->weight <= 8.1)
+                cups = 2.25;
+
+                else if(this->weight <= 9.0)
+                cups = 2.5;
+            }
+            else if(this->age >= 0.42 && this->age < 0.58)  //[5, 7) luni
+            {
+                if(this->weight <= 0.9)
+                cups = 0.25;
+
+                else if(this->weight <= 2.7)
+                cups = 0.5;
+
+                else if(this->weight <= 4.5)
+                cups = 0.75;
+
+                else if(this->weight <= 6.3)
+                cups = 1.0;
+
+                else if(this->weight <= 9.0)
+                cups = 1.25;
+            }
+            else if(this->age >= 0.58 && this->age <= 1.0)  //[7, 12] luni
+            {
+                if(this->weight <= 1.8)
+                    cups = 0.25;
+
+                else if(this->weight <= 4.5)
+                    cups = 0.5;
+
+                else if(this->weight <= 7.2)
+                    cups = 0.75;
+
+                else if(this->weight <= 9.0)
+                    cups = 1.0;
+            }
+        this->recFoodG = 224*cups;   //224 g per cup
+        }
+
+        void setBreaks()
+        {
+            if(this->eatingSpeed == "slow")
+                this->nrBreaks = 0;
+            else if(this->eatingSpeed == "medium")
+                this->nrBreaks = 1;
+            else if(this->eatingSpeed == "fast")
+                this->nrBreaks = 2;
+        }
+
+        void setNextFoodRefill()
+        {
+            if(!recFoodG)
+            {
+                setRecFood();
+            }
+            if(feedingSchedule != "")
+            {
+                feedingSchedule = "08:00 19:00 ";
+            }
+            //in g
+            int cantitate = recFoodG * feedingSchedule.length()/6;  //pe zi
+
+            
+
+        }
 
         // Setting the value for one of the settings. Hardcoded for the defrosting option
         int set(std::string name, std::string value) {
-            if(name == "weight") {
+            struct tm tm_;
+             if(name == "weight") {
                 weight = stof(value);
+                globalWeight = weight;
                 return 1;
             } else if (name == "age") {
                 age = stoi(value);
@@ -146,32 +262,149 @@ private:
             } else if (name == "eatingSpeed") {
                 eatingSpeed = value;
                 return 1;
-            } else if (name == "mSchedule"){
-                schedule = value;
+            } else if (name == "feedingSchedule"){
+                feedingSchedule = value;
                 return 1;
-            }
+            } else if (name == "waterBowlWeightG"){
+                waterBowlWeightG = stoi(value);
+                return 1;
+            } else if (name == "waterRefSchedule"){
+                waterRefSchedule = value;
+                return 1;
+            } else if (name == "foodExpDate"){
+                strptime(value.c_str(), "%d.%m.%Y %H:%M", &tm_);
+                foodExpDate = mktime(&tm_);
+                return 1;
+            } else if (name == "emptyFoodTank"){
+                emptyFoodTank = (value == "1");
+                return 1;
+            } else if (name == "emptyWaterTank"){
+                emptyWaterTank = (value == "1");
+                return 1;
+            } else if (name == "lastConsumedWater"){
+                lastConsumedWater = stoi(value);
+                if(lastConsumedWater <= this->currentQuantityWaterMl)
+                    this->currentQuantityWaterMl -= lastConsumedWater;
+                else
+                {
+                    this->currentQuantityWaterMl = 0;
+                    this->emptyWaterTank = true;
+                }
+                return 1;
+            } else if (name == "lastConsumedFood"){
+                lastConsumedFood = stoi(value);
+                if(!this->Expired()) {
+                    if(lastConsumedWater <= this->currentQuantityFoodG){
+                        this->currentQuantityFoodG -= lastConsumedWater;
+                    } else {
+                    this->currentQuantityFoodG = 0;
+                    this->emptyFoodTank = true;
+                    this->refillFood = true;
+                  } 
+                } else {
+                    this->refillFood = true;
+                    this->expiredFood = true;
+                }
+                return 1;
+            } 
             return 0;
         }
 
+        bool Expired()
+        {
+            if(!foodExpDate)
+                return false;
+            time_t now = time(0);
+            tm local_tm = *localtime(&now);
+            tm exp_date = *localtime(&foodExpDate);
+
+            if(local_tm.tm_year > exp_date.tm_year){
+                return true;
+            }else if(local_tm.tm_year == exp_date.tm_year){
+                if(local_tm.tm_mon > exp_date.tm_mon){
+                    return true;
+                }else if(local_tm.tm_mon == exp_date.tm_mon){
+                    if(local_tm.tm_mday < exp_date.tm_mday){
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         // Getter
         string get(std::string name){
+            struct tm *tm_;
             if(name == "weight") {
-                return std::to_string(weight);
+                return to_string(weight);
             } else if (name == "age") {
-                return std::to_string(age);
+                return to_string(age);
             } else if (name == "eatingSpeed") {
                 return eatingSpeed;
-            } else if (name == "mSchedule"){
-                return schedule;
-            }
+            } else if (name == "feedingSchedule"){
+                return feedingSchedule;
+            } else if (name == "waterBowlWeightG"){
+                return to_string(waterBowlWeightG);
+            } else if (name == "waterRefSchedule"){
+                return waterRefSchedule;
+            } else if (name == "foodExpDate"){
+                tm *tm_ = gmtime(&foodExpDate);
+                string someString(asctime(tm_));
+                return someString;
+            } else if (name == "emptyFoodTank"){
+                return emptyFoodTank ? "true" : "false";
+            } else if (name == "emptyWaterTank"){
+                return emptyWaterTank ? "true" : "false";
+            } else if (name == "recFoodG"){
+                return to_string(recFoodG);
+            } else if (name == "nrBreaks"){
+                return to_string(nrBreaks);
+            }   else if (name == "currentQuantityWaterMl"){
+                return to_string(currentQuantityWaterMl);
+            }   else if (name == "refreshWater"){
+                return refreshWater ? "true" : "false";
+            }   else if (name == "currentQuantityFoodG"){
+                return to_string(currentQuantityFoodG);
+            }   else if (name == "refillFood"){
+                return refillFood ? "true" : "false";
+            }   else if (name == "nextFoodRefill"){
+                tm *tm_ = gmtime(&nextFoodRefill);
+                string someString(asctime(tm_));
+                return someString;
+            }   else if (name == "nextWaterRefill"){
+                tm *tm_ = gmtime(&nextWaterRefill);
+                string someString(asctime(tm_));
+                return someString;
+            }   else if (name == "lastConsumedWater"){
+                return to_string(lastConsumedWater);
+            }   else if (name == "lastConsumedFood"){
+                return to_string(lastConsumedFood);
+            }     
             return 0;
         }
 
     private:
        float weight; 
-       int age;
+       float age;
        string eatingSpeed;
-       string schedule;
+       string feedingSchedule = "";
+       int waterBowlWeightG;                                //water bowl weight in g
+       string waterRefSchedule;                             //water refreshment schedule
+       time_t foodExpDate;
+       bool emptyFoodTank;
+       bool emptyWaterTank;
+       bool expiredFood = false;
+       int recFoodG = -1;                                      //recommended quantity of food in g
+       int nrBreaks;                                        //number of breaks
+       int currentQuantityWaterMl;                       //quantity of water in tank in ml
+       bool refreshWater;                                   //true if needs to be refreshed
+       int currentQuantityFoodG;                          //food in tank
+       bool refillFood;                                     //true if needs to be refilled
+       time_t nextFoodRefill;
+       time_t nextWaterRefill;
+       const int tankSizeFoodG = 1000;                       //in g
+       const int tankSizeWaterMl = 2000;                      //in ml
+       int lastConsumedWater;                                 //in ml
+       int lastConsumedFood;                                 //in g
     };
 
     // Create the lock which prevents concurrent editing of the same variable
@@ -187,8 +420,8 @@ private:
     Rest::Router router;
 };
 
-int main(int argc, char *argv[]) {
 
+void pistacheThread(int argc, char** argv) {
     // This code is needed for gracefull shutdown of the server when no longer needed.
     sigset_t signals;
     if (sigemptyset(&signals) != 0
@@ -197,7 +430,7 @@ int main(int argc, char *argv[]) {
             || sigaddset(&signals, SIGHUP) != 0
             || pthread_sigmask(SIG_BLOCK, &signals, nullptr) != 0) {
         perror("install signal handler failed");
-        return 1;
+        return;
     }
 
     // Set a port on which your server to communicate
@@ -239,4 +472,60 @@ int main(int argc, char *argv[]) {
     }
 
     stats.stop();
+
+}
+
+void printWeight(struct mosquitto *mosq)
+{
+	int rc;
+    
+    sleep(1);
+    string msg = "The weight of the cat is:" + to_string(globalWeight);
+   int n = msg.length();
+   char msg_array[50];
+   strcpy(msg_array, msg.c_str());
+
+	rc = mosquitto_publish(mosq, NULL, "setting/weight", n+1, msg_array, 0, false);
+	if(rc != MOSQ_ERR_SUCCESS){
+		fprintf(stderr, "Error publishing: %s\n", mosquitto_strerror(rc));
+	}
+}
+
+void mosquittoThread(int arg, char** argv) {
+    int rc;
+   struct mosquitto *mosq;
+
+   mosquitto_lib_init();
+
+   mosq = mosquitto_new("publisher-test", true, NULL);
+
+   rc = mosquitto_connect(mosq, "localhost", 1883, 60);
+
+   if (rc != 0) {
+       printf("Client could not connect!");
+       mosquitto_destroy(mosq);
+       return;
+   }
+
+   rc = mosquitto_loop_start(mosq);
+   float currentWeight;
+   while(1) {
+       if(currentWeight != globalWeight) {
+           printWeight(mosq);
+           currentWeight = globalWeight;
+       }
+   }
+   
+
+   mosquitto_lib_cleanup();
+}
+
+
+int main(int argc, char *argv[]) {
+    thread pistacheThr(pistacheThread, argc, argv);
+    thread mosquittoThr(mosquittoThread, argc, argv);
+
+    pistacheThr.join();
+    mosquittoThr.join();
+    return 0;
 }
