@@ -32,7 +32,6 @@ curl -X POST http://localhost:8080/settings/add/<setting>/<value>
 curl -X GET http://localhost:8080/settings/<setting>  (where setting is one of "weight", "age", "eatingSpeed", "feedingSchedule")
 curl -X GET http://localhost:8080/recommendedFood
 curl -X GET http://localhost:8080/getBreaks
-curl -X GET http://localhost:8080/lastRefresh
 curl -X GET http://localhost:8080/currentQuantity/<option> (where option is one of "water", "food")
 curl -X GET http://localhost:8080/dispenserStatus
 curl -X GET http://localhost:8080/fillWater
