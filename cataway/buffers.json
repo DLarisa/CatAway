@@ -216,6 +216,14 @@
           "regex-rule": "^[01]$",
           "optional": false
         },
+         {
+          "name": "If water needs to be refilled",
+          "description": "Alert if water tank is empty",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": false
+        },
         {
           "name": "Time until next tank water refillment",
           "description": "Time in dd.mm.yyyy hh:mm",
@@ -247,14 +255,7 @@
           "regex-rule": "^[01]$",
           "optional": false
         },
-        {
-          "name": "If water needs to be refilled",
-          "description": "Alert if water tank is empty",
-          "token-type": "bool",
-          "byte-size": 1,
-          "regex-rule": "^[01]$",
-          "optional": false
-        },
+
         {
           "name": "Time until next tank food refillment",
           "description": "Time in dd.mm.yyyy hh:mm",
