@@ -1,222 +1,270 @@
 {
-    "device-name": "CatAway",
-    "device-type": "Food and water dispenser",
-    "buffers-count": 3,
-    "input-buffers": {
-      "1": {
-        "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XPOST 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name":"Set cat's weight",
-            "description": "Sets cat's weight manually, with 2 decimals",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0-9]+\\.[0-9]{2}$",
-            "optional": false
-          },
-          {
-            "name":"Set cat's age",
-            "description": "Sets cat's age manually (in years)",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0-9]+\\.[0-9]{2}$",
-            "optional": false
-          },
-          {
-            "name": "Eating speed",
-            "description": "How fast the cat eats",
-            "token-type":"string",
-            "byte-size": 10,
-            "regex-rule": "^(fast|slow|medium)$",
-            "optional": false
-          },
-          {
-            "name": "Manual feeding schedule",
-            "description": "The user provides the schedule for feeding",
-            "token-type":"string",
-            "byte-size": 50,
-            "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
-            "optional": true
-          }
-        ]
-      },
-      "2":
-      {
-        "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XPOST 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name":"Set water bowl weight",
-            "description": "Sets water bowl weight manually, in g",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          },
-          {
-            "name":"Set water refreshment schedule",
-            "description": "Sets water refreshment schedule",
-            "token-type":"string",
-            "byte-size": 50,
-            "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
-            "optional": true
-          }
-        ]
-      },
-      "3":
-      {
+  "device-name": "CatAway",
+  "device-type": "Food and water dispenser",
+  "buffers-count": 3,
+  "input-buffers": {
+    "1": {
       "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XPOST 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name":"Set food expiring date",
-            "description": "Sets food expiring date, format dd.mm.yyyy",
-            "token-type": "string",
-            "byte-size": 4,
-            "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3})",
-            "optional": false
-          },
-          {
-            "name":"If food tank is empty",
-            "description": "Empty (true) or filled (false)",
-            "token-type": "bool",
-            "byte-size": 1,
-            "regex-rule": "^[01]$",
-            "optional": true
-          },
-          {
-            "name":"If water tank is empty",
-            "description": "Empty (true) or filled (false)",
-            "token-type": "bool",
-            "byte-size": 1,
-            "regex-rule": "^[01]$",
-            "optional": true
-          }
-        ]
-      },
-      "4":
-      {
-      "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XPOST 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name":"Quantity of eaten food last",
-            "description": "For decreasing the current quantity in the food tank, in g",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          },
-          {
-            "name":"Quantity of consumed water last",
-            "description": "For decreasing the current quantity in the water tank, in ml",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          }
-        ]
-      }
+      "protocol": "HTTP",
+      "prefix": "curl -XPOST 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name":"Set cat's weight",
+          "description": "Sets cat's weight manually, with 2 decimals",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+\\.[0-9]{2}$",
+          "optional": false
+        },
+        {
+          "name":"Set cat's age",
+          "description": "Sets cat's age manually (in years)",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+\\.[0-9]{2}$",
+          "optional": false
+        },
+        {
+          "name": "Eating speed",
+          "description": "How fast the cat eats",
+          "token-type":"string",
+          "byte-size": 10,
+          "regex-rule": "^(fast|slow|medium)$",
+          "optional": false
+        },
+        {
+          "name": "Set break duration",
+          "description": "Break duration in minutes",
+          "token-type":"number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+$",
+          "optional": true
+        },
+        {
+          "name": "Manual feeding schedule",
+          "description": "The user provides the schedule for feeding",
+          "token-type":"string",
+          "byte-size": 50,
+          "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
+          "optional": true
+        }
+      ]
     },
-    "output-buffers":{
-      "1":{
-        "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XGET 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name": "Recommended quantity of food",
-            "description": "Recommended portion in g",
-            "token-type": "number",
-            "byte-size": 10,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          },
-          {
-            "name": "Breaks for fast eaters",
-            "description": "Number of breaks to split the food",
-            "token-type": "number",
-            "byte-size": 4,
-            "regex-rule": "^[0|1|2]$",
-            "optional": false
-          },
-          {
-            "name": "Default feeding schedule",
-            "description": "The dispenser provides the schedule for feeding",
-            "token-type":"string",
-            "byte-size": 50,
-            "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
-            "optional": true
-          }
-        ]
-      },
-      "2":{
-        "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XGET 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name": "Quantity of water in the tank currently",
-            "description": "Quantity in ml",
-            "token-type": "number",
-            "byte-size": 10,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          },
-          {
-            "name": "If bowl water needs to be refreshed",
-            "description": "Alert",
-            "token-type": "bool",
-            "byte-size": 1,
-            "regex-rule": "^[01]$",
-            "optional": false
-          }
-        ]
-      },
-      "3":{
-        "token-delimitators": "",
-        "protocol": "HTTP",
-        "prefix": "curl -XGET 'http://localhost:8080/'",
-        "buffer-tokens": [
-          {
-            "name": "Quantity of food in the tank currently",
-            "description": "Quantity in g",
-            "token-type": "number",
-            "byte-size": 10,
-            "regex-rule": "^[0-9]+$",
-            "optional": false
-          },
-          {
-            "name": "If food needs to be refilled",
-            "description": "Alert if food is expired or food tank is empty",
-            "token-type": "bool",
-            "byte-size": 1,
-            "regex-rule": "^[01]$",
-            "optional": false
-          },
-          {
-            "name": "Time until next tank food refillment",
-            "description": "Time in dd.mm.yyyy hh:mm",
-            "token-type": "string",
-            "byte-size": 30,
-            "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
-            "optional": false
-          },
-          {
-            "name": "Time until next tank water refillment",
-            "description": "Time in dd.mm.yyyy hh:mm",
-            "token-type": "string",
-            "byte-size": 30,
-            "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
-            "optional": false
-          }
-        ]
-      }
+    "2":
+    {
+      "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XPOST 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name":"Set water capacity (volume)",
+          "description": "Sets water bowl capacity manually, in ml",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name":"Set water last refreshment date",
+          "description": "Sets food expiring date, format dd.mm.yyyy HH:MM",
+          "token-type": "string",
+          "byte-size": 30,
+          "regex-rule": "^(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) [([0-1]?[0-9]|2[0-3]):[0-5][0-9]]$",
+          "optional": false
+        },
+        {
+          "name":"Set water refreshment schedule",
+          "description": "Sets water refreshment schedule",
+          "token-type":"string",
+          "byte-size": 50,
+          "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
+          "optional": true
+        }
+      ]
+    },
+    "3":
+    {
+    "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XPOST 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name":"Set food expiring date",
+          "description": "Sets food expiring date, format dd.mm.yyyy",
+          "token-type": "string",
+          "byte-size": 4,
+          "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3})",
+          "optional": false
+        },
+        {
+          "name":"If food tank is empty",
+          "description": "Empty (true) or filled (false)",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": true
+        },
+        {
+          "name":"If water tank is empty",
+          "description": "Empty (true) or filled (false)",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": true
+        }
+      ]
+    },
+    "4":
+    {
+    "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XPOST 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name":"Quantity of eaten food last",
+          "description": "For decreasing the current quantity in the food tank, in g",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name":"Quantity of consumed water last",
+          "description": "For decreasing the current quantity in the water tank, in ml",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name":"If user refilled food tank",
+          "description": "True if user refilled food tank (after alert)",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": true
+        },
+        {
+          "name":"If user refilled water tank",
+          "description": "True if user refilled water tank (after alert)",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": true
+        }, 
+        {
+          "name":"If user refreshed water in the bowl",
+          "description": "True if user refreshed the water (after alert)",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": true
+        }
+      ]
+    }
+  },
+  "output-buffers":{
+    "1":{
+      "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XGET 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name": "Recommended quantity of food",
+          "description": "Recommended portion in g",
+          "token-type": "number",
+          "byte-size": 10,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name": "Breaks for fast eaters",
+          "description": "Number of breaks to split the food",
+          "token-type": "number",
+          "byte-size": 4,
+          "regex-rule": "^[0|1|2]$",
+          "optional": false
+        },
+        {
+          "name": "Default feeding schedule",
+          "description": "The dispenser provides the schedule for feeding",
+          "token-type":"string",
+          "byte-size": 50,
+          "regex-rule": "^[([0-1]?[0-9]|2[0-3]):[0-5][0-9] ]+$",
+          "optional": true
+        }
+      ]
+    },
+    "2":{
+      "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XGET 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name": "Quantity of water in the tank currently",
+          "description": "Quantity in ml",
+          "token-type": "number",
+          "byte-size": 10,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name": "If bowl water needs to be refreshed",
+          "description": "Alert",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": false
+        }
+      ]
+    },
+    "3":{
+      "token-delimitators": "",
+      "protocol": "HTTP",
+      "prefix": "curl -XGET 'http://localhost:8080/'",
+      "buffer-tokens": [
+        {
+          "name": "Quantity of food in the tank currently",
+          "description": "Quantity in g",
+          "token-type": "number",
+          "byte-size": 10,
+          "regex-rule": "^[0-9]+$",
+          "optional": false
+        },
+        {
+          "name": "If food needs to be refilled",
+          "description": "Alert if food is expired or food tank is empty",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": false
+        },
+        {
+          "name": "If water needs to be refilled",
+          "description": "Alert if water tank is empty",
+          "token-type": "bool",
+          "byte-size": 1,
+          "regex-rule": "^[01]$",
+          "optional": false
+        },
+        {
+          "name": "Time until next tank food refillment",
+          "description": "Time in dd.mm.yyyy hh:mm",
+          "token-type": "string",
+          "byte-size": 30,
+          "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "optional": false
+        },
+        {
+          "name": "Time until next tank water refillment",
+          "description": "Time in dd.mm.yyyy hh:mm",
+          "token-type": "string",
+          "byte-size": 30,
+          "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "optional": false
+        }
+      ]
     }
   }
-  
+}
+
