@@ -10,7 +10,6 @@
 #include <pistache/endpoint.h>
 #include <pistache/common.h>
 
-
 #include <mosquitto.h>
 
 #include <ctime>
@@ -42,6 +41,18 @@ namespace Generic {
     }
 
 }
+
+struct Cat    // stateful app
+{
+	string name;                                            // unique name for cat (identification purposes)
+	float age;
+	float weight;
+	string eatingSpeed;
+	string feedingSchedule;               // default value
+    int recFoodG = -1;                                     //recommended quantity of food in g
+    int nrBreaks;
+};
+vector<Cat*> saved_Cats;    // pentru toate pisicile care folosesc dispenser-ul
 
 
 class CatAwayEndpoint {
@@ -76,6 +87,14 @@ private:
         Routes::Get(router, "/auth", Routes::bind(&CatAwayEndpoint::doAuth, this));
         Routes::Post(router, "/settings/add/:addSetting/:value", Routes::bind(&CatAwayEndpoint::addSetting, this));
         Routes::Get(router, "/settings/:resultSetting", Routes::bind(&CatAwayEndpoint::getSetting, this));
+        Routes::Get(router, "/recommendedFood", Routes::bind(&CatAwayEndpoint::getRecFood, this));
+        Routes::Get(router, "/fillWater", Routes::bind(&CatAwayEndpoint::fillWater, this));
+        Routes::Get(router, "/getBreaks", Routes::bind(&CatAwayEndpoint::getBreaks, this));
+        Routes::Get(router, "/lastRefresh", Routes::bind(&CatAwayEndpoint::getLastRefresh, this));
+        Routes::Get(router, "/currentQuantity/:option", Routes::bind(&CatAwayEndpoint::getCurrentQuantity, this));
+        Routes::Get(router, "/dispenserStatus", Routes::bind(&CatAwayEndpoint::getStatus, this));
+        Routes::Post(router, "/cat/:name/:age/:weight/:eatingSpeed/:feedingSchedule", Routes::bind(&CatAwayEndpoint::setCatDetails, this));  // stateful app -> luăm informațiile pt pisi
+        Routes::Get(router, "/cat/:name", Routes::bind(&CatAwayEndpoint::getCatDetails, this));  // stateful app
     }
 
     
@@ -110,7 +129,7 @@ private:
 
         // Sending some confirmation or error response.
         if (setResponse == 1) {
-            response.send(Http::Code::Ok, settingName + " was set to " + val);
+            response.send(Http::Code::Ok, settingName + " was set to " + val + '\n');
         }
         else {
             response.send(Http::Code::Not_Found, settingName + " was not found and or '" + val + "' was not a valid value ");
@@ -141,19 +160,136 @@ private:
         }
     }
 
+    void fillWater (const Rest::Request& request, Http::ResponseWriter response) {
+        Guard guard(CatAwayLock);
+
+        int status = cat.set(string("waterIsRefilled"), string(""));
+
+        if (status == 1) {
+
+            using namespace Http;
+            response.headers()
+                        .add<Header::Server>("pistache/0.1")
+                        .add<Header::ContentType>(MIME(Text, Plain));
+
+            response.send(Http::Code::Ok, "The water was refilled \n");
+        }
+        else {
+            response.send(Http::Code::Not_Found, "Unexpected error");
+        }
+    }
+
+    void getRecFood(const Rest::Request& request, Http::ResponseWriter response) {
+
+        Guard guard(CatAwayLock);
+
+        string recFoodQuant = cat.get("recFoodG");
+
+        if (recFoodQuant != "") {
+
+            using namespace Http;
+            response.headers()
+                        .add<Header::Server>("pistache/0.1")
+                        .add<Header::ContentType>(MIME(Text, Plain));
+
+            response.send(Http::Code::Ok, "The recommended quantity of food is " + recFoodQuant + " g \n");
+        }
+        else {
+            response.send(Http::Code::Not_Found, "No method defined");
+        }
+
+    }
+
+    void getBreaks(const Rest::Request& request, Http::ResponseWriter response) {
+        Guard guard(CatAwayLock);
+
+        string breaks = cat.get("nrBreaks");
+
+        if (breaks != "") {
+
+            using namespace Http;
+            response.headers()
+                        .add<Header::Server>("pistache/0.1")
+                        .add<Header::ContentType>(MIME(Text, Plain));
+
+            response.send(Http::Code::Ok, "There are a number of " + breaks + " breaks, according to cat's eating speed (" + globalEatingSpeed + ") \n");
+        }
+        else {
+            response.send(Http::Code::Not_Found, "No method defined");
+        }
+    }
+
+    void getLastRefresh(const Rest::Request& request, Http::ResponseWriter response) {
+        Guard guard(CatAwayLock);
+
+        string lastRefresh = cat.get("waterLastRefreshed");
+
+        if (lastRefresh != "") {
+
+            using namespace Http;
+            response.headers()
+                        .add<Header::Server>("pistache/0.1")
+                        .add<Header::ContentType>(MIME(Text, Plain));
+
+            response.send(Http::Code::Ok, "The water was refreshed at " + lastRefresh + "\n");
+        }
+        else {
+            response.send(Http::Code::Not_Found, "No method defined");
+        }
+
+    }
+
+    void getCurrentQuantity(const Rest::Request& request, Http::ResponseWriter response) {
+        auto optionName = request.param(":option").as<std::string>();
+
+        Guard guard(CatAwayLock);
+
+        string option = cat.get(optionName);
+
+        if (option != "") {
+
+            using namespace Http;
+            response.headers()
+                        .add<Header::Server>("pistache/0.1")
+                        .add<Header::ContentType>(MIME(Text, Plain));
+
+            response.send(Http::Code::Ok, "The current quantity of " + optionName + " is " + option + '\n');
+        }
+        else {
+            response.send(Http::Code::Not_Found, "No method defined");
+        }
+
+    }
+
+    void getStatus(const Rest::Request& request, Http::ResponseWriter response) {
+        Guard guard(CatAwayLock);
+
+        map<string, string> alerts = cat.getAlerts();
+
+        using namespace Http;
+        response.headers()
+                    .add<Header::Server>("pistache/0.1")
+                    .add<Header::ContentType>(MIME(Text, Plain));
+
+        response.send(Http::Code::Ok, "The water and food tanks color is " + alerts["emptyTank"] + '\n' + 
+                                      "Food expiration date color is " + alerts["expiredFood"] + '\n' + 
+                                      "The water refreshment color is " + alerts["needsRefreshment"] + '\n');
+
+    }
+
     // Defining the class of the CatAway. It should model the entire configuration of the CatAway
     class CatAway {
     public:
-        explicit CatAway(){
-            this->Alert.insert(pair<string, string>("emptyTank", "Off"));
-            this->Alert.insert(pair<string, string>("Expired Food", "Off"));
-            this->Alert.insert(pair<string, string>("Water needs to be refreshed in the bowl", "Off"));
+        explicit CatAway() {
+            this->Alert.insert(pair<string, string>("emptyTank", "Green"));
+            this->Alert.insert(pair<string, string>("expiredFood", "Green"));
+            this->Alert.insert(pair<string, string>("needsRefreshment", "Green"));
          }
-        void setRecFood()
-        {
+
+        void setRecFood() {
             if(this->weight == -1.0 || this->age == -1.0)
             {
-                this->recFoodG = 70;                                      //portia medie
+                this->recFoodG = 70;       //portia medie
                 return;
             }
             float cups = 0;
@@ -259,9 +395,8 @@ private:
             if(!recFoodG) {
                 setRecFood();
             }
-
             if(feedingSchedule == "") {
-                feedingSchedule = "08:00 19:00 ";                                                    //default schedule
+                feedingSchedule = "08:00-19:00-";                                                    //default schedule
             }
             
             int cantitate = recFoodG * feedingSchedule.length()/6;                                   //pe zi, cantitatea in g
@@ -275,24 +410,22 @@ private:
             gmtm->tm_min += int(nr_minute);
             time_t possible_time = mktime(gmtm);
 
-            if(foodExpDate != (time_t)(-1))
-            {
+            if(foodExpDate != (time_t)(-1)) {
                 double diff = difftime(possible_time, this->foodExpDate);
-            if(diff<=0)
+            if(diff <= 0)
                 this->nextFoodRefill = possible_time;
             else
                 this->nextFoodRefill = this->foodExpDate;
             }
-            else
-            if(feedingSchedule == "")
-            {
+            else {
                 this->nextFoodRefill = possible_time;
             }
         }
+
+
     
 
-  bool Expired()
-        {
+        bool Expired() {
             if(foodExpDate == (time_t)(-1))
                 return false;
             
@@ -301,15 +434,15 @@ private:
             tm exp_date = *localtime(&foodExpDate);
 
             if(local_tm.tm_year > exp_date.tm_year){
-                this->Alert["Expired Food"] = "Red";
+                this->Alert["expiredFood"] = "Red";
                 return true;
             }else if(local_tm.tm_year == exp_date.tm_year){
                 if(local_tm.tm_mon > exp_date.tm_mon){
-                    this->Alert["Expired Food"] = "Red";
+                    this->Alert["expiredFood"] = "Red";
                     return true;
                 }else if(local_tm.tm_mon == exp_date.tm_mon){
                     if(local_tm.tm_mday < exp_date.tm_mday){
-                        this->Alert["Expired Food"] = "Red";
+                        this->Alert["expiredFood"] = "Red";
                         return true;
                     }
                 }
@@ -317,17 +450,16 @@ private:
             return false;
         }
 
-        void setWaterRefresh()            
-        {
+        void setWaterRefresh() {
             if(this->waterLastRefreshed == (time_t)(-1))
             {
-                this->Alert["Water needs to be refreshed in the bowl"] = "Orange";
+                this->Alert["needsRefreshment"] = "Orange";
                 return;
             }
             time_t now = time(0);
             tm *gmtm = gmtime(&now);
             gmtm->tm_hour += 3;      //ora Romaniei, prezent
-            time_t now = mktime(gmtm);
+            now = mktime(gmtm);
             string prima_h;
             string doi_h;
             if(this->waterRefSchedule.length() >= 13)
@@ -355,7 +487,7 @@ private:
 
             double diferenta2 = difftime(now, this->waterLastRefreshed);
             if(diferenta2>diferenta)
-                this->Alert["Water needs to be refreshed in the bowl"] = "Orange";
+                this->Alert["needsRefreshment"] = "Orange";
         }
 
         void setNextWaterRefill()
@@ -374,7 +506,7 @@ private:
 
             if(this->waterRefSchedule == "")
             {
-                this->waterRefSchedule = "08:00 19:00 ";
+                this->waterRefSchedule = "08:00-19:00-";
             }
 
             int cantitate = this->waterBowlCapacityMl * waterRefSchedule.length()/6;                                   //pe zi, cantitatea in g
@@ -460,11 +592,11 @@ private:
                     this->refillFood = true;
                     this->Alert["emptyTank"] = "Yellow";
                     this->setNextFoodRefill();
-                  } 
+                    } 
                 } else {
                     this->refillFood = true;
                     this->expiredFood = true;
-                    this->Alert["Expired Food"] = "Red";
+                    this->Alert["expiredFood"] = "Red";
                     this->setNextFoodRefill();
                 }
                 return 1;
@@ -476,18 +608,24 @@ private:
                     this->currentQuantityFoodG = tankSizeFoodG;
                 this->foodIsRefilled = false;
                 if(!this->emptyWaterTank)
-                    this->Alert["emptyTank"] = "Off";
+                    this->Alert["emptyTank"] = "Green";
 
-                this->Alert["Expired Food"] = "Off";
+                this->Alert["expiredFood"] = "Green";
             }
             else if(name == "waterIsRefilled")
             {
                 this->waterIsRefilled = (value == "true");
+                time_t now = time(0);
+                tm *gmtm = gmtime(&now);                          
+                gmtm->tm_hour += 3;                                              
+                this->waterLastRefreshed = mktime(gmtm);
+
                 if(waterIsRefilled)
                     this->currentQuantityWaterMl = tankSizeWaterMl;
                 this->waterIsRefilled = false;
                 if(!this->emptyFoodTank)
-                    this->Alert["emptyTank"] = "Off";
+                    this->Alert["emptyTank"] = "Green";
+                return 1;
             }
             else if(name == "breakDuration"){ 
                 return breakDuration;
@@ -503,7 +641,7 @@ private:
             {
                 this->waterIsRefreshed = (value == "true");
                 if(waterIsRefreshed){
-                    this->Alert["Water needs to be refreshed in the bowl"] = "Off";
+                    this->Alert["needsRefreshment"] = "Green";
                     this->waterIsRefilled = false;
                 }
             }
@@ -568,17 +706,21 @@ private:
                 dt = ctime(&waterLastRefreshed);
                 string someString(dt);
                 return someString;
-            }
+            } 
             return 0;
         }
+
+    map<string, string> getAlerts() {
+        return this->Alert;
+    }
 
     private:
        float weight = -1.0; 
        float age = -1.0;
        string eatingSpeed;
        string feedingSchedule = "";
-       int waterBowlCapacityMl = -1;                                //water bowl capacity in ml
-       string waterRefSchedule = "";                             //water refreshment schedule
+       int waterBowlCapacityMl = -1;  //water bowl capacity in ml
+       string waterRefSchedule = "";   //water refreshment schedule
        time_t foodExpDate = (time_t) (-1);
        bool emptyFoodTank;
        bool emptyWaterTank;
@@ -602,6 +744,74 @@ private:
        int lastConsumedFood;                                 //in g
        map<string,string> Alert; 
     };
+
+    // Stateful App
+    // Setăm Dispenser-ul pentru pisicile care îl vor folosi (save "users")
+    void setCatDetails(const Rest::Request& request, Http::ResponseWriter response) {
+        Cat* ourCat;
+        auto name = request.param(":name").as<std::string>();
+        auto age = request.param(":age").as<std::string>();
+        auto weight = request.param(":weight").as<std::string>();
+        auto eatingSpeed = request.param(":eatingSpeed").as<std::string>();
+
+        // ca să verificăm dacă pisi există deja
+        bool found = false;
+        for(Cat* &catAux: saved_Cats) {
+            if(catAux->name == name)
+            {
+                found = true;  // numele este unic pentru pisi (identificator); dacă avem acelasi nume, este update
+                ourCat = catAux;
+            }
+        }
+
+        if(!found)  // dacă nu avem pisică, o adăugăm
+        {
+            ourCat = new Cat();
+            saved_Cats.push_back(ourCat);
+        }
+
+        // Actualizăm / Punem info despre pisi
+        ourCat->name = name;
+        ourCat->age = stof(age);
+        ourCat->weight = stof(weight);
+        ourCat->eatingSpeed = eatingSpeed;
+        string feedingSchedule = "08:00-19:00-";
+        if(request.hasParam(":feedingSchedule")) {
+            auto value = request.param(":feedingSchedule");
+            feedingSchedule = value.as<string>();
+        }
+        ourCat->feedingSchedule = feedingSchedule;
+
+
+        CatAway catAway;
+        catAway.set("age", to_string(ourCat->age));
+        catAway.set("weight", to_string(ourCat->weight));
+        catAway.set("eatingSpeed", ourCat->eatingSpeed);
+        catAway.set("feedingSchedule", ourCat->feedingSchedule);
+        catAway.setRecFood(); ourCat->recFoodG = stoi(catAway.get("recFoodG"));
+        catAway.setBreaks(); ourCat->nrBreaks = stoi(catAway.get("nrBreaks"));
+
+        // Verificare (Afiș)
+        cout << "Input Received: " << name << ", " << age << ", " << weight << ", " << eatingSpeed << ", " << feedingSchedule << endl;
+
+        response.send(Http::Code::Ok, "Cat Info Saved! Meow! \n");
+    }
+
+    // Luăm info despre pisi care folosesc dispenser-ul
+    void getCatDetails(const Rest::Request& request, Http::ResponseWriter response)
+    {
+        string returnString = "No Cat Found!";
+        auto TextParam = request.param(":name").as<std::string>();
+        for(Cat* &catAux: saved_Cats)
+        {
+            if(catAux->name == TextParam)
+                returnString = "Name: " + TextParam + "\nAge: " + to_string(catAux->age).substr(0, 4) + "\nWeight: " + to_string(catAux->weight).substr(0, 4) +
+                               "\nEating Speed: " + catAux->eatingSpeed + "\nFeeding Schedule: " + catAux->feedingSchedule +
+                               "\nRecommended Quantity of Food (g): " + to_string(catAux->recFoodG) + "\nNr of Breaks: " + to_string(catAux->nrBreaks) + "\n";
+        }
+
+        response.send(Http::Code::Ok, returnString.c_str());
+    }
 
     // Create the lock which prevents concurrent editing of the same variable
     using Lock = std::mutex;
