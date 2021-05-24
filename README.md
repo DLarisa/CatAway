@@ -50,4 +50,4 @@ To print the values of all settings: ```mosquitto_sub -h localhost -t settings``
   - [Oana Mariana Ivan](https://github.com/Oana-Ivan)
 
 ## Analytical report
-https://drive.google.com/file/d/1K-18boBWxrBHq-cbgstuP_eV_OkkWLLv/view
+The analitical report can pe found [here](https://github.com/mihaela-mab/CatAway/blob/main/Raport%20de%20analiza.pdf)
