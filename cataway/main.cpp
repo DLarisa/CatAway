@@ -10,6 +10,7 @@
 #include <pistache/endpoint.h>
 #include <pistache/common.h>
 
+
 #include <mosquitto.h>
 
 #include <ctime>
@@ -19,6 +20,9 @@ using namespace std;
 using namespace Pistache;
 
 float globalWeight;
+float globalAge;
+string globalEatingSpeed;
+
 
 
 void printCookies(const Http::Request& req) {
@@ -140,9 +144,18 @@ private:
     // Defining the class of the CatAway. It should model the entire configuration of the CatAway
     class CatAway {
     public:
-        explicit CatAway(){ }
+        explicit CatAway(){
+            this->Alert.insert(pair<string, string>("emptyTank", "Off"));
+            this->Alert.insert(pair<string, string>("Expired Food", "Off"));
+            this->Alert.insert(pair<string, string>("Water needs to be refreshed in the bowl", "Off"));
+         }
         void setRecFood()
         {
+            if(this->weight == -1.0 || this->age == -1.0)
+            {
+                this->recFoodG = 70;                                      //portia medie
+                return;
+            }
             float cups = 0;
             if(this->age > 1.0)
             {
@@ -234,39 +247,171 @@ private:
 
         void setNextFoodRefill()
         {
-            if(!recFoodG)
+            if(this->refillFood)
             {
+                time_t now = time(0);
+                tm *gmtm = gmtime(&now);                        //ora dupa UTC (Universal)
+                gmtm->tm_hour += 3;                           //ajustam ora Romaniei  (UTC + 3 ore)
+                this->nextFoodRefill = mktime(gmtm);
+                this->Alert["emptyTank"] = "Yellow";
+                return;
+            }
+            if(!recFoodG) {
                 setRecFood();
             }
-            if(feedingSchedule == "")
-            {
-                feedingSchedule = "08:00 19:00 ";
+<<<<<<< HEAD
+            if(feedingSchedule == "") {
+                feedingSchedule = "08:00 19:00 ";                                                    //default schedule
             }
-            //in g
-            int cantitate = recFoodG * feedingSchedule.length()/6;  //pe zi
-
             
+            int cantitate = recFoodG * feedingSchedule.length()/6;                                   //pe zi, cantitatea in g
+            float nr_zile = float(this->currentQuantityFoodG/float(cantitate));
+            float nr_ore = float((nr_zile - float(int(nr_zile)))*24);
+            float nr_minute = float((nr_ore - float(int(nr_ore))))*60;
+            time_t now = time(0);
+            tm *gmtm = gmtime(&now);                                                                 //ora dupa UTC (Universal)
+            gmtm->tm_hour += 3 + int(nr_ore);                                                        //ajustam ora Romaniei  (UTC + 3 ore)
+            gmtm->tm_mday += int(nr_zile);
+            gmtm->tm_min += int(nr_minute);
+            time_t possible_time = mktime(gmtm);
 
+            if(foodExpDate != (time_t)(-1))
+            {
+                double diff = difftime(possible_time, this->foodExpDate);
+            if(diff<=0)
+                this->nextFoodRefill = possible_time;
+            else
+                this->nextFoodRefill = this->foodExpDate;
+            }
+            else
+=======
+            if(feedingSchedule == "")
+>>>>>>> 00c3cbf4a64b7923688f20db384992fa733b8dcf
+            {
+                this->nextFoodRefill = possible_time;
+            }
         }
+    
+
+  bool Expired()
+        {
+            if(foodExpDate == (time_t)(-1))
+                return false;
+            
+            time_t now = time(0);
+            tm local_tm = *localtime(&now);
+            tm exp_date = *localtime(&foodExpDate);
+
+            if(local_tm.tm_year > exp_date.tm_year){
+                this->Alert["Expired Food"] = "Red";
+                return true;
+            }else if(local_tm.tm_year == exp_date.tm_year){
+                if(local_tm.tm_mon > exp_date.tm_mon){
+                    this->Alert["Expired Food"] = "Red";
+                    return true;
+                }else if(local_tm.tm_mon == exp_date.tm_mon){
+                    if(local_tm.tm_mday < exp_date.tm_mday){
+                        this->Alert["Expired Food"] = "Red";
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        void setWaterRefresh()            
+        {
+            if(this->waterLastRefreshed == (time_t)(-1))
+            {
+                this->Alert["Water needs to be refreshed in the bowl"] = "Orange";
+                return;
+            }
+            time_t now = time(0);
+            tm *gmtm = gmtime(&now);
+            gmtm->tm_hour += 3;      //ora Romaniei, prezent
+            time_t now = mktime(gmtm);
+            string prima_h;
+            string doi_h;
+            if(this->waterRefSchedule.length() >= 13)
+            {
+                prima_h = this->waterRefSchedule.substr(0, 5);
+                doi_h = this->waterRefSchedule.substr(7, 5);
+            }
+            else
+            {
+                prima_h = "08:00";
+                doi_h = "19:00";
+            }
+            const char* str1 = prima_h.c_str();
+            const char* str2 = doi_h.c_str();
+
+            struct tm tm_;
+            struct tm tm__;
+            strptime(str1, "%H:%M:%S", &tm_);
+            time_t t1 = mktime(&tm_);  
+
+            strptime(str2, "%H:%M:%S", &tm__);
+            time_t t2 = mktime(&tm__); 
+
+            double diferenta = difftime(t2, t1);
+
+            double diferenta2 = difftime(now, this->waterLastRefreshed);
+            if(diferenta2>diferenta)
+                this->Alert["Water needs to be refreshed in the bowl"] = "Orange";
+        }
+
+        void setNextWaterRefill()
+        {
+            if(this->emptyWaterTank == true)
+            {
+                this->Alert["emptyTank"] = "Yellow";
+                time_t now = time(0);
+                tm *gmtm = gmtime(&now);                                          //ora UTC
+                gmtm->tm_hour += 3;                                              //ora Romaniei
+                this->nextWaterRefill = mktime(gmtm);
+                return;
+            }
+            if(this->waterBowlCapacityMl == -1)
+                this->waterBowlCapacityMl = 200;                               //minimum
+
+            if(this->waterRefSchedule == "")
+            {
+                this->waterRefSchedule = "08:00 19:00 ";
+            }
+
+            int cantitate = this->waterBowlCapacityMl * waterRefSchedule.length()/6;                                   //pe zi, cantitatea in g
+            float nr_zile = float(this->currentQuantityFoodG/float(cantitate));
+            float nr_ore = float((nr_zile - float(int(nr_zile)))*24);
+            float nr_minute = float((nr_ore - float(int(nr_ore))))*60;
+            time_t now = time(0);
+            tm *gmtm = gmtime(&now);                                                                 //ora dupa UTC (Universal)
+            gmtm->tm_hour += 3 + int(nr_ore);                                                        //ajustam ora Romaniei  (UTC + 3 ore)
+            gmtm->tm_mday += int(nr_zile);
+            gmtm->tm_min += int(nr_minute);
+            this->nextWaterRefill = mktime(gmtm);
+        }
+
 
         // Setting the value for one of the settings. Hardcoded for the defrosting option
         int set(std::string name, std::string value) {
             struct tm tm_;
-             if(name == "weight") {
+            if(name == "weight") {
                 weight = stof(value);
                 globalWeight = weight;
+                this->setRecFood();
                 return 1;
             } else if (name == "age") {
-                age = stoi(value);
+                age = stof(value);
+                globalAge = age;
+                this->setRecFood();
                 return 1;
             } else if (name == "eatingSpeed") {
                 eatingSpeed = value;
-                return 1;
-            } else if (name == "feedingSchedule"){
-                feedingSchedule = value;
+                globalEatingSpeed = eatingSpeed;
+                this->setBreaks();
                 return 1;
             } else if (name == "waterBowlWeightG"){
-                waterBowlWeightG = stoi(value);
+                waterBowlCapacityMl = stoi(value);
                 return 1;
             } else if (name == "waterRefSchedule"){
                 waterRefSchedule = value;
@@ -274,66 +419,103 @@ private:
             } else if (name == "foodExpDate"){
                 strptime(value.c_str(), "%d.%m.%Y %H:%M", &tm_);
                 foodExpDate = mktime(&tm_);
+                this->setNextFoodRefill();
                 return 1;
             } else if (name == "emptyFoodTank"){
                 emptyFoodTank = (value == "1");
+                if(emptyFoodTank == true)
+                {
+                    this->refillFood = true;
+                    this->Alert["emptyTank"] = "Yellow";
+                    this->setNextFoodRefill();
+                }
                 return 1;
             } else if (name == "emptyWaterTank"){
                 emptyWaterTank = (value == "1");
+                if(emptyWaterTank == true)
+                {
+                    this->Alert["emptyTank"] = "Yellow";
+                    this->setNextWaterRefill();
+                }
                 return 1;
             } else if (name == "lastConsumedWater"){
                 lastConsumedWater = stoi(value);
-                if(lastConsumedWater <= this->currentQuantityWaterMl)
+                if(lastConsumedWater <= this->currentQuantityWaterMl){
                     this->currentQuantityWaterMl -= lastConsumedWater;
-                else
-                {
+                    this->setNextWaterRefill();
+                } else {
                     this->currentQuantityWaterMl = 0;
                     this->emptyWaterTank = true;
+                    this->Alert["emptyTank"] = "Yellow";
+                    this->setNextWaterRefill();
                 }
                 return 1;
             } else if (name == "lastConsumedFood"){
                 lastConsumedFood = stoi(value);
                 if(!this->Expired()) {
                     if(lastConsumedWater <= this->currentQuantityFoodG){
-                        this->currentQuantityFoodG -= lastConsumedWater;
+                        this->currentQuantityFoodG -= lastConsumedFood;
+                        this->setNextFoodRefill();
                     } else {
                     this->currentQuantityFoodG = 0;
                     this->emptyFoodTank = true;
                     this->refillFood = true;
+                    this->Alert["emptyTank"] = "Yellow";
+                    this->setNextFoodRefill();
                   } 
                 } else {
                     this->refillFood = true;
                     this->expiredFood = true;
+                    this->Alert["Expired Food"] = "Red";
+                    this->setNextFoodRefill();
                 }
                 return 1;
             } 
+            else if(name == "foodIsRefilled")
+            {
+                this->foodIsRefilled = (value == "true");
+                if(foodIsRefilled)
+                    this->currentQuantityFoodG = tankSizeFoodG;
+                this->foodIsRefilled = false;
+                if(!this->emptyWaterTank)
+                    this->Alert["emptyTank"] = "Off";
+
+                this->Alert["Expired Food"] = "Off";
+            }
+            else if(name == "waterIsRefilled")
+            {
+                this->waterIsRefilled = (value == "true");
+                if(waterIsRefilled)
+                    this->currentQuantityWaterMl = tankSizeWaterMl;
+                this->waterIsRefilled = false;
+                if(!this->emptyFoodTank)
+                    this->Alert["emptyTank"] = "Off";
+            }
+            else if(name == "breakDuration"){ 
+                return breakDuration;
+                }
+            else if(name == "waterLastRefreshed")
+            {
+                strptime(value.c_str(), "%d.%m.%Y %H:%M", &tm_);
+                waterLastRefreshed = mktime(&tm_);
+                this->setWaterRefresh();
+                return 1;
+            }
+            else if(name == "waterIsRefreshed")
+            {
+                this->waterIsRefreshed = (value == "true");
+                if(waterIsRefreshed){
+                    this->Alert["Water needs to be refreshed in the bowl"] = "Off";
+                    this->waterIsRefilled = false;
+                }
+            }
             return 0;
         }
 
-        bool Expired()
-        {
-            if(!foodExpDate)
-                return false;
-            time_t now = time(0);
-            tm local_tm = *localtime(&now);
-            tm exp_date = *localtime(&foodExpDate);
-
-            if(local_tm.tm_year > exp_date.tm_year){
-                return true;
-            }else if(local_tm.tm_year == exp_date.tm_year){
-                if(local_tm.tm_mon > exp_date.tm_mon){
-                    return true;
-                }else if(local_tm.tm_mon == exp_date.tm_mon){
-                    if(local_tm.tm_mday < exp_date.tm_mday){
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
         // Getter
         string get(std::string name){
             struct tm *tm_;
+            char* dt;
             if(name == "weight") {
                 return to_string(weight);
             } else if (name == "age") {
@@ -342,13 +524,13 @@ private:
                 return eatingSpeed;
             } else if (name == "feedingSchedule"){
                 return feedingSchedule;
-            } else if (name == "waterBowlWeightG"){
-                return to_string(waterBowlWeightG);
+            } else if (name == "waterBowlCapacityMl"){
+                return to_string(waterBowlCapacityMl);
             } else if (name == "waterRefSchedule"){
                 return waterRefSchedule;
             } else if (name == "foodExpDate"){
-                tm *tm_ = gmtime(&foodExpDate);
-                string someString(asctime(tm_));
+                dt = ctime(&foodExpDate);
+                string someString(dt);
                 return someString;
             } else if (name == "emptyFoodTank"){
                 return emptyFoodTank ? "true" : "false";
@@ -367,44 +549,60 @@ private:
             }   else if (name == "refillFood"){
                 return refillFood ? "true" : "false";
             }   else if (name == "nextFoodRefill"){
-                tm *tm_ = gmtime(&nextFoodRefill);
-                string someString(asctime(tm_));
+                dt = ctime(&nextFoodRefill);
+                string someString(dt);
                 return someString;
             }   else if (name == "nextWaterRefill"){
-                tm *tm_ = gmtime(&nextWaterRefill);
-                string someString(asctime(tm_));
+                dt = ctime(&nextWaterRefill);
+                string someString(dt);
                 return someString;
             }   else if (name == "lastConsumedWater"){
                 return to_string(lastConsumedWater);
             }   else if (name == "lastConsumedFood"){
                 return to_string(lastConsumedFood);
-            }     
+            }   else if(name == "tankSizeFoodG"){
+                return to_string(tankSizeFoodG);
+            }   else if(name == "tankSizeWaterMl"){
+                return to_string(tankSizeWaterMl);
+            }   else if(name == "breakDuration"){
+                return to_string(breakDuration);
+            }   else if(name == "waterLastRefreshed"){
+                dt = ctime(&waterLastRefreshed);
+                string someString(dt);
+                return someString;
+            }
             return 0;
         }
 
     private:
-       float weight; 
-       float age;
+       float weight = -1.0; 
+       float age = -1.0;
        string eatingSpeed;
        string feedingSchedule = "";
-       int waterBowlWeightG;                                //water bowl weight in g
-       string waterRefSchedule;                             //water refreshment schedule
-       time_t foodExpDate;
+       int waterBowlCapacityMl = -1;                                //water bowl capacity in ml
+       string waterRefSchedule = "";                             //water refreshment schedule
+       time_t foodExpDate = (time_t) (-1);
        bool emptyFoodTank;
        bool emptyWaterTank;
        bool expiredFood = false;
        int recFoodG = -1;                                      //recommended quantity of food in g
        int nrBreaks;                                        //number of breaks
-       int currentQuantityWaterMl;                       //quantity of water in tank in ml
-       bool refreshWater;                                   //true if needs to be refreshed
-       int currentQuantityFoodG;                          //food in tank
-       bool refillFood;                                     //true if needs to be refilled
+       int breakDuration = -1;                                //duration in minutes
+       int currentQuantityWaterMl = 0;                       //quantity of water in tank in ml
+       bool refreshWater = false;                                   //true if needs to be refreshed
+       time_t waterLastRefreshed = (time_t)(-1);
+       int currentQuantityFoodG = 0;                          //food in tank
+       bool refillFood = false;                               //true if needs to be refilled
+       bool foodIsRefilled = false;                           //true if user refilled food
+       bool waterIsRefilled = false;                          //true if user refilled water
+       bool waterIsRefreshed = false;
        time_t nextFoodRefill;
        time_t nextWaterRefill;
        const int tankSizeFoodG = 1000;                       //in g
-       const int tankSizeWaterMl = 2000;                      //in ml
+       const int tankSizeWaterMl = 3000;                      //in ml
        int lastConsumedWater;                                 //in ml
        int lastConsumedFood;                                 //in g
+       map<string,string> Alert; 
     };
 
     // Create the lock which prevents concurrent editing of the same variable
@@ -475,17 +673,44 @@ void pistacheThread(int argc, char** argv) {
 
 }
 
-void printWeight(struct mosquitto *mosq)
-{
+void printWeight(struct mosquitto *mosq) {
 	int rc;
     
     sleep(1);
-    string msg = "The weight of the cat is:" + to_string(globalWeight);
-   int n = msg.length();
-   char msg_array[50];
-   strcpy(msg_array, msg.c_str());
+    string msg = "The weight of the cat is " + to_string(globalWeight).substr(0, 4);
+    int n = msg.length();
+    char msg_array[50];
+    strcpy(msg_array, msg.c_str());
 
-	rc = mosquitto_publish(mosq, NULL, "setting/weight", n+1, msg_array, 0, false);
+	rc = mosquitto_publish(mosq, NULL, "settings", n+1, msg_array, 0, false);
+	if(rc != MOSQ_ERR_SUCCESS){
+		fprintf(stderr, "Error publishing: %s\n", mosquitto_strerror(rc));
+	}
+}
+
+void printAge(struct mosquitto *mosq) {
+	int rc;
+    sleep(1);
+    string msg = "The age of the cat is " + to_string(globalAge).substr(0, 4);
+    int n = msg.length();
+    char msg_array[50];
+    strcpy(msg_array, msg.c_str());
+
+	rc = mosquitto_publish(mosq, NULL, "settings", n+1, msg_array, 0, false);
+	if(rc != MOSQ_ERR_SUCCESS){
+		fprintf(stderr, "Error publishing: %s\n", mosquitto_strerror(rc));
+	}
+}
+
+void printEatingSpeed(struct mosquitto *mosq) {
+	int rc; 
+    sleep(1);
+    string msg = "The cat has a " + globalEatingSpeed + " eating speed \n";
+    int n = msg.length();
+    char msg_array[50];
+    strcpy(msg_array, msg.c_str());
+
+	rc = mosquitto_publish(mosq, NULL, "settings", n+1, msg_array, 0, false);
 	if(rc != MOSQ_ERR_SUCCESS){
 		fprintf(stderr, "Error publishing: %s\n", mosquitto_strerror(rc));
 	}
@@ -508,15 +733,27 @@ void mosquittoThread(int arg, char** argv) {
    }
 
    rc = mosquitto_loop_start(mosq);
-   float currentWeight;
+
+   float currentWeight, currentAge;
+   string currentEatingSpeed;
+
    while(1) {
        if(currentWeight != globalWeight) {
            printWeight(mosq);
            currentWeight = globalWeight;
        }
+
+       if(currentAge != globalAge) {
+           printAge(mosq);
+           currentAge = globalAge;
+       }
+
+       if(currentEatingSpeed != globalEatingSpeed) {
+           printEatingSpeed(mosq);
+           currentEatingSpeed = globalEatingSpeed;
+       }
    }
    
-
    mosquitto_lib_cleanup();
 }
 
