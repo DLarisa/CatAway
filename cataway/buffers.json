@@ -66,7 +66,7 @@
         },
         {
           "name":"Set water last refreshment date",
-          "description": "Sets food expiring date, format dd.mm.yyyy HH:MM",
+          "description": "Sets last water refreshment date, format dd.mm.yyyy HH:MM",
           "token-type": "string",
           "byte-size": 30,
           "regex-rule": "^(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) [([0-1]?[0-9]|2[0-3]):[0-5][0-9]]$",
