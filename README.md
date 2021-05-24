@@ -26,6 +26,17 @@ Start the server with ```./cataway```
 To introduce a setting, type ```curl -X POST http://localhost:8080/settings/add/<settingName>/<value>```</br></br>
 To get the value of a setting, type ```curl -X POST http://localhost:8080/settings/<settingName>```
 
+All options are listed bellow
+```
+curl -X POST http://localhost:8080/settings/add/<setting>/<value>
+curl -X GET http://localhost:8080/settings/<setting>  (where setting is one of "weight", "age", "eatingSpeed", "feedingSchedule")
+curl -X GET http://localhost:8080/recommendedFood
+curl -X GET http://localhost:8080/getBreaks
+curl -X GET http://localhost:8080/lastRefresh
+curl -X GET http://localhost:8080/currentQuantity/<option> (where option is one of "water", "food")
+curl -X GET http://localhost:8080/dispenserStatus
+```
+
 ### Using Mosquitto
 To print the values of all settings: ```mosquitto_sub -h localhost -t settings```
 
