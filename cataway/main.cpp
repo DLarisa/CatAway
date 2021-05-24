@@ -259,7 +259,7 @@ private:
             if(!recFoodG) {
                 setRecFood();
             }
-<<<<<<< HEAD
+
             if(feedingSchedule == "") {
                 feedingSchedule = "08:00 19:00 ";                                                    //default schedule
             }
@@ -284,9 +284,7 @@ private:
                 this->nextFoodRefill = this->foodExpDate;
             }
             else
-=======
             if(feedingSchedule == "")
->>>>>>> 00c3cbf4a64b7923688f20db384992fa733b8dcf
             {
                 this->nextFoodRefill = possible_time;
             }
