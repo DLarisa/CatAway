@@ -1,7 +1,7 @@
 {
   "device-name": "CatAway",
   "device-type": "Food and water dispenser",
-  "buffers-count": 3,
+  "buffers-count": 7,
   "input-buffers": {
     "1": {
       "token-delimitators": "",
