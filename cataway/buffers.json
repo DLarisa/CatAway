@@ -215,6 +215,14 @@
           "byte-size": 1,
           "regex-rule": "^[01]$",
           "optional": false
+        },
+        {
+          "name": "Time until next tank water refillment",
+          "description": "Time in dd.mm.yyyy hh:mm",
+          "token-type": "string",
+          "byte-size": 30,
+          "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "optional": false
         }
       ]
     },
@@ -249,14 +257,6 @@
         },
         {
           "name": "Time until next tank food refillment",
-          "description": "Time in dd.mm.yyyy hh:mm",
-          "token-type": "string",
-          "byte-size": 30,
-          "regex-rule": "(0[1-9]|[12]\\d|3[01]).(0[1-9]|1[0-2]).([12]\\d{3}) ([0-1]?[0-9]|2[0-3]):[0-5][0-9]$",
-          "optional": false
-        },
-        {
-          "name": "Time until next tank water refillment",
           "description": "Time in dd.mm.yyyy hh:mm",
           "token-type": "string",
           "byte-size": 30,
