@@ -238,7 +238,7 @@ private:
             {
                 setRecFood();
             }
-            if(feedingSchedule != "")
+            if(feedingSchedule == "")
             {
                 feedingSchedule = "08:00 19:00 ";
             }
