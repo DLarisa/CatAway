@@ -24,7 +24,7 @@ Start the server with ```./cataway```
 
 ## Tests
 To introduce a setting, type ```curl -X POST http://localhost:8080/settings/add/<settingName>/<value>```</br></br>
-To get the value of a setting, type ```curl -X POST http://localhost:8080/settings/<settingName>```
+To get the value of a setting, type ```curl -X GET http://localhost:8080/settings/<settingName>```
 
 All options are listed bellow
 ```
