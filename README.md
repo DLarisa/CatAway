@@ -36,6 +36,8 @@ curl -X GET http://localhost:8080/currentQuantity/<option> (where option is one 
 curl -X GET http://localhost:8080/dispenserStatus
 curl -X GET http://localhost:8080/fillWater
 curl -X GET http://localhost:8080/lastRefresh
+curl -X POST http://localhost:8080/cat/<name>/<age>/<weight>/<eatingSpeed>/<feedingSchedule>
+curl -X GET http://localhost:8080/cat/<name>
 ```
 
 ### Using Mosquitto
