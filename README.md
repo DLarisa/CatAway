@@ -47,7 +47,7 @@ To print the values of all settings: ```mosquitto_sub -h localhost -t settings``
   - [Alecsandru Ciobanu](https://github.com/alecs99)
   - [Ana Maria Stegarescu](https://github.com/StegarescuAnaMaria)
   - [Bianca Furculesteanu](https://github.com/Bia103)
-  - [Larisa Dumitrache](https://github.com/DLarisa)
+  - [Larisa D](https://github.com/DLarisa)
   - [Mihaela Antal-Burlacu](https://github.com/mihaela-mab)
   - [Oana Mariana Ivan](https://github.com/Oana-Ivan)
 
